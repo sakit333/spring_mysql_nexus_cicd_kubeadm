@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-app
+  namespace: app-stack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-app
+  template:
+    metadata:
+      labels:
+        app: spring-app
+    spec:
+      containers:
+        - name: spring-app
+          image: sakit333/spring_app_sak:latest
+          ports:
+            - containerPort: 8085
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://mysql:3306/myapplication
+            - name: SPRING_DATASOURCE_USERNAME
+              value: root
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: mysql-root-password
+            - name: NEXUS_URL
+              value: http://nexus:8081
+            - name: NEXUS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: nexus-credentials
+                  key: nexus-username
+            - name: NEXUS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nexus-credentials
+                  key: nexus-password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-app
+  namespace: app-stack
+spec:
+  selector:
+    app: spring-app
+  ports:
+    - port: 8085
+      targetPort: 8085
+      nodePort: 30085
+  type: LoadBalancer
