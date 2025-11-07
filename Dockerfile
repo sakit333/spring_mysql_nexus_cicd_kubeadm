@@ -1,32 +1,28 @@
 ################################################################################
-#  🚀 Multi-Stage Dockerfile — Spring Boot + Maven + Nexus CI/CD
-#  Designed by: @sak_shetty
+#  Multi-Stage Dockerfile for Spring Boot Application with Nexus Deployment
+#  Designed and Developed by: @sak_shetty
 ################################################################################
 
 #### ---- Stage 1: Build ---- ####
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copy project configuration
-COPY pom.xml .
+# Copy Maven settings for Nexus authentication
 COPY settings.xml /root/.m2/settings.xml
-
-# Fetch dependencies first (cache optimization)
+COPY pom.xml .
 RUN mvn dependency:go-offline -B
 
-# Copy source code
+# Copy source
 COPY src ./src
 
-# Build arguments and environment for Nexus
-ARG NEXUS_USER=admin
-ARG NEXUS_PASS=admin
+# Environment arguments for CI/CD
+ARG NEXUS_USER
+ARG NEXUS_PASS
 ENV NEXUS_USER=${NEXUS_USER} \
     NEXUS_PASS=${NEXUS_PASS}
 
-# Build and (optional) deploy
+# Build only (skip deploy to avoid Nexus issues on dev)
 RUN mvn clean package -DskipTests -s /root/.m2/settings.xml
-# To enable Nexus deploy:
-# RUN mvn clean deploy -DskipTests -s /root/.m2/settings.xml
 
 #### ---- Stage 2: Runtime ---- ####
 FROM eclipse-temurin:17-jre-jammy AS runtime
@@ -34,8 +30,6 @@ LABEL maintainer="sak_shetty" \
       description="Spring Boot App built and designed by @sak_shetty"
 
 WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
-
+COPY --from=build /app/target/spring_app_sak-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8085
-
 ENTRYPOINT ["java", "-jar", "app.jar"]

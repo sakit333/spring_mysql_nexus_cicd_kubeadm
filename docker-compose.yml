@@ -1,5 +1,6 @@
 ################################################################################
-#  🚀 Docker Compose Setup — Dev Environment (MySQL + Nexus + Spring Boot)
+#  🚀 Docker Compose Setup — Dev Environment
+#  Stack: MySQL + Nexus + Spring Boot (spring_app_sak)
 #  Designed & Tuned by: @sak_shetty
 ################################################################################
 
@@ -31,13 +32,17 @@ services:
     cpus: 1.0
     networks:
       - app_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   ##############################################################################
-  # 📦 Nexus Repository Manager (Dev / CI-CD)
-  # Using a reliable image: klo2k/nexus3 — supports direct admin/admin login
+  # 📦 Nexus Repository Manager (with static admin password)
   ##############################################################################
   nexus-repo:
-    image: klo2k/nexus3:latest
+    image: sonatype/nexus3:latest
     container_name: nexus_repo
     restart: always
     env_file:
@@ -51,7 +56,7 @@ services:
         -Djava.util.prefs.userRoot=/nexus-data
     volumes:
       - nexus_data:/nexus-data
-      # Predefined admin password file
+      # 👇 Preload admin password so login = admin / admin
       - ./nexus-admin-password:/nexus-data/admin.password
     ports:
       - "8081:8081"
@@ -64,17 +69,21 @@ services:
     cpus: 1.5
     networks:
       - app_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   ##############################################################################
   # 🌱 Spring Boot Application
   ##############################################################################
   spring-app:
     build:
-      context: ./               # Project root (where Dockerfile exists)
+      context: ./               # Path to project root
       dockerfile: Dockerfile
       args:
-        NEXUS_USER: ${NEXUS_USERNAME}
-        NEXUS_PASS: ${NEXUS_PASSWORD}
+        BUILD_ENV: dev
     image: sakit333/spring_app_sak:latest
     container_name: spring_app_sak
     depends_on:
@@ -95,8 +104,20 @@ services:
     restart: on-failure
     mem_limit: 700m
     cpus: 0.5
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
     networks:
       - app_network
+    volumes:
+      - spring_app_logs:/app/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 ################################################################################
 # 🔸 Volumes & Networks
@@ -104,6 +125,7 @@ services:
 volumes:
   mysql_data:
   nexus_data:
+  spring_app_logs:
 
 networks:
   app_network:
