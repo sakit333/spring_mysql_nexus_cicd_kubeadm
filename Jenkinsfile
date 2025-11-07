@@ -32,7 +32,7 @@ pipeline {
     stages {
         stage('Build Docker Image') {
             when {
-                allof {
+                allOf {
                     expression {
                         params.DEPLOY_ENV == 'prod'
                         params.ACTION == 'Deploy'
@@ -48,7 +48,7 @@ pipeline {
         }
         stage('Tag Docker Image as Latest') {
             when {
-                allof {
+                allOf {
                     expression {
                         params.DEPLOY_ENV == 'prod'
                         params.ACTION == 'Deploy'
@@ -64,7 +64,7 @@ pipeline {
         }
         stage('Docker Login') {
             when {
-                allof {
+                allOf {
                     expression {
                         params.DEPLOY_ENV == 'prod'
                         params.ACTION == 'Deploy'
@@ -80,7 +80,7 @@ pipeline {
 
         stage('Push Docker Images') {
             when {
-                allof {
+                allOf {
                     expression {
                         params.DEPLOY_ENV == 'prod'
                         params.ACTION == 'Deploy'
@@ -98,7 +98,7 @@ pipeline {
 
         stage('Cleanup Local Docker Images') {
             when {
-                allof {
+                allOf {
                     expression {
                         params.DEPLOY_ENV == 'prod'
                         params.ACTION == 'Deploy'
@@ -116,7 +116,7 @@ pipeline {
 
         stage('Deploy Dev Environment (Docker Compose)') {
             when {
-                allof {
+                allOf {
                     expression {
                         params.DEPLOY_ENV == 'dev'
                         params.ACTION == 'Deploy'
@@ -131,7 +131,7 @@ pipeline {
 
         stage('Remove Dev Environment') {
             when {
-                allof {
+                allOf {
                     expression {
                         params.DEPLOY_ENV == 'dev'
                         params.ACTION == 'Remove'
@@ -149,7 +149,7 @@ pipeline {
 
         stage('Deploy to Kubernetes (Prod)') {
             when {
-                allof {
+                allOf {
                     expression {
                         params.DEPLOY_ENV == 'prod'
                         params.ACTION == 'Deploy'
@@ -179,7 +179,7 @@ pipeline {
 
         stage('Cleanup Prod Kubernetes Resources') {
             when {
-                allof {
+                allOf {
                     expression {
                         params.DEPLOY_ENV == 'prod'
                         params.ACTION == 'Remove'
