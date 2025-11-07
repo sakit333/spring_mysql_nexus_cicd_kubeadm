@@ -60,10 +60,10 @@ services:
 
   spring-app:
     build:
-    context: ./   # adjust path if needed
-    dockerfile: Dockerfile
-    args:
-      BUILD_ENV: dev
+      context: ./              # Path to your project root (where Dockerfile is)
+      dockerfile: Dockerfile
+      args:
+        BUILD_ENV: dev
     image: sakit333/spring_app_sak:latest
     container_name: spring_app_sak
     depends_on:
