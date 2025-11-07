@@ -125,7 +125,7 @@ pipeline {
             }
             steps {
                 echo 'Deploying Dev environment via Docker Compose...'
-                sh 'sudo docker-compose -f docker-compose.yaml up -d'
+                sh 'sudo docker-compose -f docker-compose.yml up -d'
             }
         }
 
@@ -141,7 +141,7 @@ pipeline {
             steps {
                 echo 'Removing Dev environment...'
                 sh """
-                sudo docker-compose -f docker-compose.yaml down --rmi all
+                sudo docker-compose -f docker-compose.yml down --rmi all
                 sudo docker system prune -af
                 """
             }
