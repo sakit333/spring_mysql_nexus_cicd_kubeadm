@@ -1,29 +1,35 @@
 ################################################################################
-#  Docker Compose Setup
-#  Full stack environment for development/testing
-#  MySQL, Nexus, and Spring Boot app (spring_app_sak)
-#  Developed by: @sak_shetty
+#  🚀 Docker Compose Setup — Dev Environment
+#  Stack: MySQL + Nexus + Spring Boot (spring_app_sak)
+#  Designed & Tuned by: @sak_shetty
 ################################################################################
 
 version: "3.8"
 
 services:
+  ##############################################################################
+  # 🐬 MySQL Database
+  ##############################################################################
   mysql-db:
     image: mysql:8.0
     container_name: mysql_db
     restart: always
     env_file:
       - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
       - "3306:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
     mem_limit: 2g
+    cpus: 1.0
     networks:
       - app_network
     logging:
@@ -32,6 +38,9 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  ##############################################################################
+  # 📦 Nexus Repository Manager
+  ##############################################################################
   nexus-repo:
     image: sonatype/nexus3:latest
     container_name: nexus_repo
@@ -40,16 +49,23 @@ services:
       - .env
     environment:
       NEXUS_SECURITY_RANDOMPASSWORD: "false"
+      INSTALL4J_ADD_VM_PARAMS: >
+        -Xms1g -Xmx2g
+        -XX:+UseG1GC
+        -XX:+UnlockExperimentalVMOptions
+        -XX:+UseContainerSupport
+        -Djava.util.prefs.userRoot=/nexus-data
     volumes:
       - nexus_data:/nexus-data
     ports:
       - "8081:8081"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081"]
-      interval: 15s
+      interval: 20s
       timeout: 10s
       retries: 5
-    mem_limit: 2.5g
+    mem_limit: 3g
+    cpus: 1.5
     networks:
       - app_network
     logging:
@@ -58,9 +74,12 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  ##############################################################################
+  # 🌱 Spring Boot Application
+  ##############################################################################
   spring-app:
     build:
-      context: ./              # Path to your project root (where Dockerfile is)
+      context: ./               # Adjust if Dockerfile is inside spring_app_code_base
       dockerfile: Dockerfile
       args:
         BUILD_ENV: dev
@@ -77,9 +96,13 @@ services:
       - .env
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/myapplication
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
       NEXUS_URL: http://nexus-repo:8081
+      SPRING_PROFILES_ACTIVE: dev
     restart: on-failure
     mem_limit: 700m
+    cpus: 0.5
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health || exit 1"]
       interval: 15s
@@ -95,6 +118,9 @@ services:
         max-size: "10m"
         max-file: "3"
 
+################################################################################
+# 🔸 Volumes & Networks
+################################################################################
 volumes:
   mysql_data:
   nexus_data:

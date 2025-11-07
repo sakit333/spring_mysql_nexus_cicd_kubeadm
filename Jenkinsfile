@@ -39,7 +39,7 @@ pipeline {
             }
             steps {
                 echo 'Deploying Dev environment via Docker Compose...'
-                sh 'sudo docker-compose -f docker-compose.yml up -d'
+                sh 'sudo docker-compose -f docker-compose.yml up -d --build'
             }
         }
 
