@@ -30,13 +30,39 @@ pipeline {
         DOCKER_LATEST_TAG = "latest"
     }
     stages {
+        stage('Deploy Dev Environment (Docker Compose)') {
+            when {
+                allOf {
+                    expression { params.DEPLOY_ENV == 'dev' }
+                    expression { params.ACTION == 'Deploy' }
+                }
+            }
+            steps {
+                echo 'Deploying Dev environment via Docker Compose...'
+                sh 'sudo docker-compose -f docker-compose.yml up -d'
+            }
+        }
+
+        stage('Remove Dev Environment') {
+            when {
+                allOf {
+                    expression { params.DEPLOY_ENV == 'dev' }
+                    expression { params.ACTION == 'Remove' }
+                }
+            }
+            steps {
+                echo 'Removing Dev environment...'
+                sh """
+                sudo docker-compose -f docker-compose.yml down --rmi all
+                sudo docker system prune -af
+                """
+            }
+        }
         stage('Build Docker Image') {
             when {
                 allOf {
-                    expression {
-                        params.DEPLOY_ENV == 'prod'
-                        params.ACTION == 'Deploy'
-                    }
+                    expression { params.DEPLOY_ENV == 'prod' }
+                    expression { params.ACTION == 'Deploy' }
                 }
             }
             steps {
@@ -49,10 +75,8 @@ pipeline {
         stage('Tag Docker Image as Latest') {
             when {
                 allOf {
-                    expression {
-                        params.DEPLOY_ENV == 'prod'
-                        params.ACTION == 'Deploy'
-                    }
+                    expression { params.DEPLOY_ENV == 'prod' }
+                    expression { params.ACTION == 'Deploy' }
                 }
             }
             steps {
@@ -65,10 +89,8 @@ pipeline {
         stage('Docker Login') {
             when {
                 allOf {
-                    expression {
-                        params.DEPLOY_ENV == 'prod'
-                        params.ACTION == 'Deploy'
-                    }
+                    expression { params.DEPLOY_ENV == 'prod' }
+                    expression { params.ACTION == 'Deploy' }
                 }
             }
             steps {
@@ -81,10 +103,8 @@ pipeline {
         stage('Push Docker Images') {
             when {
                 allOf {
-                    expression {
-                        params.DEPLOY_ENV == 'prod'
-                        params.ACTION == 'Deploy'
-                    }
+                    expression { params.DEPLOY_ENV == 'prod' }
+                    expression { params.ACTION == 'Deploy' }
                 }
             }
             steps {
@@ -99,10 +119,8 @@ pipeline {
         stage('Cleanup Local Docker Images') {
             when {
                 allOf {
-                    expression {
-                        params.DEPLOY_ENV == 'prod'
-                        params.ACTION == 'Deploy'
-                    }
+                    expression { params.DEPLOY_ENV == 'prod' }
+                    expression { params.ACTION == 'Deploy' }
                 }
             }
             steps {
@@ -114,46 +132,11 @@ pipeline {
             }
         }
 
-        stage('Deploy Dev Environment (Docker Compose)') {
-            when {
-                allOf {
-                    expression {
-                        params.DEPLOY_ENV == 'dev'
-                        params.ACTION == 'Deploy'
-                    }
-                }
-            }
-            steps {
-                echo 'Deploying Dev environment via Docker Compose...'
-                sh 'sudo docker-compose -f docker-compose.yml up -d'
-            }
-        }
-
-        stage('Remove Dev Environment') {
-            when {
-                allOf {
-                    expression {
-                        params.DEPLOY_ENV == 'dev'
-                        params.ACTION == 'Remove'
-                    }
-                }
-            }
-            steps {
-                echo 'Removing Dev environment...'
-                sh """
-                sudo docker-compose -f docker-compose.yml down --rmi all
-                sudo docker system prune -af
-                """
-            }
-        }
-
         stage('Deploy to Kubernetes (Prod)') {
             when {
                 allOf {
-                    expression {
-                        params.DEPLOY_ENV == 'prod'
-                        params.ACTION == 'Deploy'
-                    }
+                    expression { params.DEPLOY_ENV == 'prod' }
+                    expression { params.ACTION == 'Deploy' }
                 }
             }
             steps {
@@ -180,10 +163,8 @@ pipeline {
         stage('Cleanup Prod Kubernetes Resources') {
             when {
                 allOf {
-                    expression {
-                        params.DEPLOY_ENV == 'prod'
-                        params.CLEANUP == true
-                    }
+                    expression { params.DEPLOY_ENV == 'prod' }
+                    expression { params.ACTION == 'Remove' }
                 }
             }
             steps {
@@ -198,12 +179,23 @@ pipeline {
                 }
             }
         }
+        stage('Docker Logout') {
+            when {
+                allOf {
+                    expression { params.DEPLOY_ENV == 'prod' }
+                    expression { params.ACTION == 'Remove' }
+                }
+            }
+            steps {
+                echo 'Logging out from Docker Hub...'
+                sh 'sudo docker logout || true'
+            }
+        }
     }
 
     post {
         always {
             echo 'Logging out from Docker Hub...'
-            sh 'sudo docker logout || true'
         }
         success {
             echo 'Pipeline executed successfully!'
