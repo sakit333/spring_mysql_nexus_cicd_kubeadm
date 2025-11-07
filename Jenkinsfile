@@ -19,6 +19,7 @@ pipeline {
         string(name: 'DOCKER_IMAGE_NAME', defaultValue: 'spring_app_sak', description: 'Docker image name')
         string(name: 'DOCKER_TAG', defaultValue: "${env.BUILD_ID}", description: 'Docker tag version')
         choice(name: 'DEPLOY_ENV', choices: ['dev', 'prod'], description: 'Deployment environment')
+        choice(name: 'ACTION', choices: ['Deploy', 'Remove'], description: 'Remove thed Deployment after testing')
         booleanParam(name: 'CLEANUP', defaultValue: false, description: 'Cleanup Prod resources after deployment')
     }
     environment {
@@ -29,18 +30,47 @@ pipeline {
         DOCKER_LATEST_TAG = "latest"
     }
     stages {
-
         stage('Build Docker Image') {
+            when {
+                allof {
+                    expression {
+                        params.DEPLOY_ENV == 'prod'
+                        params.ACTION == 'Deploy'
+                    }
+                }
+            }
             steps {
                 echo 'Building Docker image...'
                 sh """
                     docker build -t ${DOCKER_IMAGE}:${DOCKER_VERSION_TAG} .
+                """
+            }
+        }
+        stage('Tag Docker Image as Latest') {
+            when {
+                allof {
+                    expression {
+                        params.DEPLOY_ENV == 'prod'
+                        params.ACTION == 'Deploy'
+                    }
+                }
+            }
+            steps {
+                echo 'Tagging Docker image as latest...'
+                sh """
                     docker tag ${DOCKER_IMAGE}:${DOCKER_VERSION_TAG} ${DOCKER_IMAGE}:${DOCKER_LATEST_TAG}
                 """
             }
         }
-
         stage('Docker Login') {
+            when {
+                allof {
+                    expression {
+                        params.DEPLOY_ENV == 'prod'
+                        params.ACTION == 'Deploy'
+                    }
+                }
+            }
             steps {
                 withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh 'docker login -u $DOCKER_USER -p $DOCKER_PASS'
@@ -49,6 +79,14 @@ pipeline {
         }
 
         stage('Push Docker Images') {
+            when {
+                allof {
+                    expression {
+                        params.DEPLOY_ENV == 'prod'
+                        params.ACTION == 'Deploy'
+                    }
+                }
+            }
             steps {
                 echo 'Pushing Docker images to Docker Hub...'
                 sh """
@@ -59,6 +97,14 @@ pipeline {
         }
 
         stage('Cleanup Local Docker Images') {
+            when {
+                allof {
+                    expression {
+                        params.DEPLOY_ENV == 'prod'
+                        params.ACTION == 'Deploy'
+                    }
+                }
+            }
             steps {
                 echo 'Removing local Docker images...'
                 sh """
@@ -70,7 +116,12 @@ pipeline {
 
         stage('Deploy Dev Environment (Docker Compose)') {
             when {
-                expression { params.DEPLOY_ENV == 'dev' }
+                allof {
+                    expression {
+                        params.DEPLOY_ENV == 'dev'
+                        params.ACTION == 'Deploy'
+                    }
+                }
             }
             steps {
                 echo 'Deploying Dev environment via Docker Compose...'
@@ -80,16 +131,31 @@ pipeline {
 
         stage('Remove Dev Environment') {
             when {
-                expression { params.DEPLOY_ENV == 'dev' }
+                allof {
+                    expression {
+                        params.DEPLOY_ENV == 'dev'
+                        params.ACTION == 'Remove'
+                    }
+                }
             }
             steps {
                 echo 'Removing Dev environment...'
-                sh 'docker-compose -f docker-compose.yaml down --rmi all'
+                sh """
+                docker-compose -f docker-compose.yaml down --rmi all
+                docker system prune -af
+                """
             }
         }
 
         stage('Deploy to Kubernetes (Prod)') {
-            when { expression { params.DEPLOY_ENV == 'prod' } }
+            when {
+                allof {
+                    expression {
+                        params.DEPLOY_ENV == 'prod'
+                        params.ACTION == 'Deploy'
+                    }
+                }
+            }
             steps {
                 withCredentials([file(credentialsId: "${KUBECONFIG_CREDENTIALS}", variable: 'KUBECONFIG_FILE')]) {
                     sh """
@@ -113,7 +179,12 @@ pipeline {
 
         stage('Cleanup Prod Kubernetes Resources') {
             when {
-                expression { params.DEPLOY_ENV == 'prod' && params.CLEANUP }
+                allof {
+                    expression {
+                        params.DEPLOY_ENV == 'prod'
+                        params.ACTION == 'Remove'
+                    }
+                }
             }
             steps {
                 echo 'Cleaning up Prod resources...'
