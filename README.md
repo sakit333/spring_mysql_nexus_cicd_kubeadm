@@ -14,7 +14,7 @@ The Jenkins pipeline performs the following tasks:
 ## System Requirements
 
 ### Jenkins Server
-- Ubuntu 24.04 
+- Ubuntu 24.04 (4gb RAM + 2CPU + 20gb Storage)
 - Docker & Docker Compose installed
 - Kubectl installed
 - Java 17

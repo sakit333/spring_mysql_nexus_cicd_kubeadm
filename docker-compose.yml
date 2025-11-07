@@ -39,7 +39,7 @@ services:
         max-file: "3"
 
   ##############################################################################
-  # 📦 Nexus Repository Manager
+  # 📦 Nexus Repository Manager (Dev / CI-CD)
   ##############################################################################
   nexus-repo:
     image: sonatype/nexus3:latest
@@ -48,7 +48,6 @@ services:
     env_file:
       - .env
     environment:
-      NEXUS_SECURITY_RANDOMPASSWORD: "false"
       INSTALL4J_ADD_VM_PARAMS: >
         -Xms1g -Xmx2g
         -XX:+UseG1GC
@@ -57,6 +56,8 @@ services:
         -Djava.util.prefs.userRoot=/nexus-data
     volumes:
       - nexus_data:/nexus-data
+      # 👇 Preload admin password so login = admin / admin
+      - ./nexus-admin-password:/nexus-data/admin.password
     ports:
       - "8081:8081"
     healthcheck:
@@ -73,6 +74,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
 
   ##############################################################################
   # 🌱 Spring Boot Application
