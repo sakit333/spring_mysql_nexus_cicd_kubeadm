@@ -42,7 +42,7 @@ pipeline {
             steps {
                 echo 'Building Docker image...'
                 sh """
-                    docker build -t ${DOCKER_IMAGE}:${DOCKER_VERSION_TAG} .
+                    sudo docker build -t ${DOCKER_IMAGE}:${DOCKER_VERSION_TAG} .
                 """
             }
         }
@@ -58,7 +58,7 @@ pipeline {
             steps {
                 echo 'Tagging Docker image as latest...'
                 sh """
-                    docker tag ${DOCKER_IMAGE}:${DOCKER_VERSION_TAG} ${DOCKER_IMAGE}:${DOCKER_LATEST_TAG}
+                    sudo docker tag ${DOCKER_IMAGE}:${DOCKER_VERSION_TAG} ${DOCKER_IMAGE}:${DOCKER_LATEST_TAG}
                 """
             }
         }
@@ -73,7 +73,7 @@ pipeline {
             }
             steps {
                 withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh 'docker login -u $DOCKER_USER -p $DOCKER_PASS'
+                    sh 'sudo docker login -u $DOCKER_USER -p $DOCKER_PASS'
                 }
             }
         }
@@ -90,8 +90,8 @@ pipeline {
             steps {
                 echo 'Pushing Docker images to Docker Hub...'
                 sh """
-                    docker push ${DOCKER_IMAGE}:${DOCKER_VERSION_TAG}
-                    docker push ${DOCKER_IMAGE}:${DOCKER_LATEST_TAG}
+                    sudo docker push ${DOCKER_IMAGE}:${DOCKER_VERSION_TAG}
+                    sudo docker push ${DOCKER_IMAGE}:${DOCKER_LATEST_TAG}
                 """
             }
         }
@@ -108,8 +108,8 @@ pipeline {
             steps {
                 echo 'Removing local Docker images...'
                 sh """
-                    docker rmi ${DOCKER_IMAGE}:${DOCKER_VERSION_TAG} || true
-                    docker rmi ${DOCKER_IMAGE}:${DOCKER_LATEST_TAG} || true
+                    sudo docker rmi ${DOCKER_IMAGE}:${DOCKER_VERSION_TAG} || true
+                    sudo docker rmi ${DOCKER_IMAGE}:${DOCKER_LATEST_TAG} || true
                 """
             }
         }
@@ -125,7 +125,7 @@ pipeline {
             }
             steps {
                 echo 'Deploying Dev environment via Docker Compose...'
-                sh 'docker-compose -f docker-compose.yaml up -d'
+                sh 'sudo docker-compose -f docker-compose.yaml up -d'
             }
         }
 
@@ -141,8 +141,8 @@ pipeline {
             steps {
                 echo 'Removing Dev environment...'
                 sh """
-                docker-compose -f docker-compose.yaml down --rmi all
-                docker system prune -af
+                sudo docker-compose -f docker-compose.yaml down --rmi all
+                sudo docker system prune -af
                 """
             }
         }
@@ -203,7 +203,7 @@ pipeline {
     post {
         always {
             echo 'Logging out from Docker Hub...'
-            sh 'docker logout || true'
+            sh 'sudo docker logout || true'
         }
         success {
             echo 'Pipeline executed successfully!'
