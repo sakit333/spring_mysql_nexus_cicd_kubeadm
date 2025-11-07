@@ -182,7 +182,7 @@ pipeline {
                 allOf {
                     expression {
                         params.DEPLOY_ENV == 'prod'
-                        params.ACTION == 'Remove'
+                        params.CLEANUP == true
                     }
                 }
             }
